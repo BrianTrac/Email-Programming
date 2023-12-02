@@ -5,10 +5,12 @@ import base64
 from socket import *
 from datetime import datetime, timedelta
 import secrets
+import mimetypes
 
-#function to generate a random boundary
-def generate_boundary(length):
-    return ''.join(secrets.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for _ in range(length))
+#get header email from file
+def get_mime_type(file_path):
+    return mimetypes.guess_type(file_path)[0]
+
 
 # Function to generate a unique message id
 def generate_message_id():
@@ -17,36 +19,6 @@ def generate_message_id():
     message_id = f"<{unique_id}-{timestamp}@gmail.com>"
     return message_id
 
-# Function to send simple message without attachment
-def sendSimpleMessaage(client_socket, message):
-    # Send Content-Type
-    client_socket.send(
-        f'Content-Type: text/plain; charset=UTF-8; format=flowed\r\n'.encode('utf-8'))
-    # Send Content-Transfer
-    client_socket.send(
-        f'Content-Transfer-Encoding: 7bit\r\n\r\n'.encode('utf-8'))
-    # Send the email content
-    email_content = f'{message}\r\n'
-    client_socket.send(email_content.encode('utf-8'))
-
-# function to send message with attachment
-def sendMultipartMessage(client_socket, attachment_path, boundary):
-    for path in attachment_path:
-        client_socket.send(f'{boundary}\n'.encode('utf-8'))
-        # Send Content-Type
-        client_socket.send(f'Content-Type: text/plain; charset=UTF-8; name = "{os.path.basename(path)}"\r\n'.encode('utf-8'))
-        # Send Content-Disposition
-        client_socket.send(f'Content-Disposition: attachment; filename = "{os.path.basename(path)}"\r\n'.encode('utf-8'))
-        # Send Content-Transfer
-        client_socket.send(f'Content-Transfer-Encoding: base64\r\n\r\n'.encode('utf-8'))
-        # Send the attachment content
-        with open(path, "rb") as attachment:
-            attachment_content = attachment.read()
-            encoded_content = base64.b64encode(attachment_content).decode()
-            client_socket.send(encoded_content.encode('utf-8'))
-            client_socket.send('\r\n'.encode('utf-8'))
-    client_socket.send(f'--{boundary}--\r\n'.encode('utf-8'))
-    client_socket.send(f'.\r\n'.encode('utf-8'))
 
 # Function to send email
 def send_email(
@@ -80,13 +52,13 @@ def send_email(
     print(response.decode('utf-8'))
 
     # Send the MAIL FROM command
-    client_socket.send(f'MAIL FROM: <{sender_email}>\r\n'.encode('utf-8'))
+    client_socket.send(f'MAIL FROM:<{sender_email}>\r\n'.encode('utf-8'))
     response = client_socket.recv(1024)
     print(response.decode('utf-8'))
 
     # Send the RCPT TO command
     for element in recipient_email:
-        client_socket.send(f'RCPT TO: <{element}>\r\n'.encode('utf-8'))
+        client_socket.send(f'RCPT TO:<{element}>\r\n'.encode('utf-8'))
         response = client_socket.recv(1024)
         print(response.decode('utf-8'))
 
@@ -96,10 +68,10 @@ def send_email(
     print(response.decode('utf-8'))
 
     # Send the email headers
-    if (attachment_path):
+    if attachment_path:
         # random string that never appears in the message
-        boundary = generate_boundary(30)
-        client_socket.send(f'Content-Type: multipart/mixed; boundary={boundary}\r\n'.encode('utf-8'))
+        boundary = secrets.token_hex(16)
+        client_socket.send(f'Content-Type: multipart/mixed; boundary="{boundary}"\r\n'.encode('utf-8'))
     else:
         client_socket.send(f'Content-Type: text/plain; charset=UTF-8; format=flowed\r\n'.encode('utf-8'))
 
@@ -131,8 +103,8 @@ def send_email(
 
     # Send CC
     if cc_recipient_email:
-        cc_rec_email = ', '.join(to_recipient_email)
-        client_socket.send(f'To: {cc_rec_email}\r\n'.encode('utf-8'))
+        cc_rec_email = ', '.join(cc_recipient_email)
+        client_socket.send(f'Cc: {cc_rec_email}\r\n'.encode('utf-8'))
 
     # Send if not people in To and CC
     if (not to_recipient_email) & (not cc_recipient_email):
@@ -142,17 +114,56 @@ def send_email(
     client_socket.send(f'From: {sender_name} <{sender_email}>\r\n'.encode('utf-8'))
 
     # Send Subject
-    client_socket.send(f'Subject: {subject}\r\n'.encode('utf-8'))
+    client_socket.send(f'Subject: {subject}\n'.encode('utf-8'))
+    
     if attachment_path:
-        client_socket.send(f'\r\nThis is multi-part message in MIME format.\n'.encode('utf-8'))
-        client_socket.send(f'--{boundary}\n'.encode('utf-8'))
-        sendSimpleMessaage(client_socket, message)
-        sendMultipartMessage(client_socket, attachment_path,boundary)
-    else:
-        sendSimpleMessaage(client_socket, message)
+        client_socket.send(f'\r\nThis is a multi-part message in MIME format.\r\n'.encode('utf-8'))
+        client_socket.send(f'--{boundary}\r\n'.encode('utf-8'))
+        
+        # Send Content-Type
+        client_socket.send(
+            f'Content-Type: text/plain; charset=UTF-8; format=flowed\r\n'.encode('utf-8'))
+        # Send Content-Transfer
+        client_socket.send(
+            f'Content-Transfer-Encoding: 7bit'.encode('utf-8'))
+        # Send the email content
+        email_content = f'\r\n\r\n{message}\r\n\r\n'
+        client_socket.send(email_content.encode('utf-8'))
 
+        
+        for path in attachment_path:
+            client_socket.send(f'--{boundary}\n'.encode('utf-8'))
+            # Send Content-Type
+            client_socket.send(f'Content-Type: {get_mime_type(path)}; charset=UTF-8; name="{os.path.basename(path)}"\r\n'.encode('utf-8'))
+            # Send Content-Disposition
+            client_socket.send(f'Content-Disposition: attachment; filename="{os.path.basename(path)}"\r\n'.encode('utf-8'))
+            # Send Content-Transfer
+            client_socket.send(f'Content-Transfer-Encoding: base64\r\n\r\n'.encode('utf-8'))
+            # Send the attachment content
+            with open(path, "rb") as attachment:
+                attachment_content = attachment.read()
+                encoded_content = base64.b64encode(attachment_content).decode()
+                # Split the content into lines of a maximum length, for example, 998 characters
+                lines = [encoded_content[i:i+998] for i in range(0, len(encoded_content), 998)]
+                # Send each line separately
+                for line in lines:
+                    client_socket.send((line + '\r\n').encode('utf-8'))
+        client_socket.send(f'\r\n\r\n--{boundary}--\r\n\r\n'.encode('utf-8'))  # end of the multipart message
+    else:
+        # Send Content-Type
+        client_socket.send(f'Content-Type: text/plain; charset=UTF-8; format=flowed\r\n'.encode('utf-8'))
+        # Send Content-Transfer
+        client_socket.send(
+            f'Content-Transfer-Encoding: 7bit\r\n\r\n'.encode('utf-8'))
+        # Send the email content
+        email_content = f'{message}\r\n\r\n'
+        client_socket.send(email_content.encode('utf-8'))
+    
+    client_socket.send('.\r\n'.encode('utf-8'))  # end of the data section
     response = client_socket.recv(1024)
     print(response.decode('utf-8'))
+
+    
     # Quit
     client_socket.send('QUIT\r\n'.encode('utf-8'))
     response = client_socket.recv(1024)
