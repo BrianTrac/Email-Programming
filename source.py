@@ -27,9 +27,12 @@ bcc_recipient_email = [email for email in bcc_recipient_email if email]
 
 recipient_email = set(to_recipient_email) | set(cc_recipient_email) | set(bcc_recipient_email)
 
-attachment_path = ["E:\Data_Structures_And_Algorithms\Challenge1\input.txt",
-                   "E:\pixel.pdf",
-                   "E:\pixel.png"]
+
+attachment_path = [os.path.normpath(raw_path) for raw_path in [
+    r"E:\Data_Structures_And_Algorithms\Challenge1\input.txt",
+    r"E:\Computer_Networking\Lecture\08-Datalink Layer-T12.13.pdf",
+    r"E:\08.pdf"
+]]
 
 
 send_email(sender_name, sender_email, recipient_email, to_recipient_email,
