@@ -2,10 +2,9 @@ import base64
 import pytz
 import uuid
 import os
-import threading
-import time
 from socket import *
 from datetime import datetime, timedelta
+from urllib.parse import unquote
 
 RETR_FILE = "D:\\Python\\Socket Programming\\Email\\retr_file.txt"
 CONTENT_EMAIL_FILE = "content_email.txt"
@@ -53,21 +52,33 @@ def process_mime_structure(folder_path, part):
     part_headers, part_body = part.split('\r\n\r\n', 1)
 
     # Parse headers into dictionary
-    part_headers_dict = dict(line.split(": ", 1) for line in part_headers.split('\r\n') if ": " in line)
+    part_headers_dict = dict(
+        (line.split(": ", 1) if ": " in line else line.split("*=UTF-8''", 1))
+        for line in part_headers.split('\r\n') if (": " in line or "*=UTF-8''" in line)
+    )
+
+    print( part_headers_dict )
 
     # Check if the part in an attachment
     if 'attachment' in part_headers_dict.get('Content-Disposition', ''):
         # Extract filename and content
-        try :
+        print(part_headers_dict.get('Content-Disposition', ''))
+        if '=' in part_headers_dict.get('Content-Disposition', ''):
             filename = part_headers_dict.get('Content-Disposition', '').split('=')[1].strip('"')
-        except:
-            filename = "ERROR.txt"
-            pass
-        content = part_body
+        else:
+            filename = ""  
     else:
         filename = CONTENT_EMAIL_FILE
-        content = part_body
-
+    
+    if filename == "":
+        print(part_headers_dict.get(' filename', ''))
+        filename = part_headers_dict.get(' filename', '')
+        if (filename == ""):
+            filename = part_headers_dict .get(' filename*0', '')
+        filename = unquote(filename)
+    
+    content = part_body
+    print(filename, "!!!")
     # Save to file
     save_attachment(folder_path, filename, content, part_headers_dict)
 
