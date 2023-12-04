@@ -216,7 +216,35 @@ def send_commands(client_socket, username, password):
     for command in commands:
         client_socket.send(f'{command}\r\n'.encode('utf-8'))
         print(client_socket.recv(1024).decode('utf-8'))
+def get_and_save_email(client_socket, element):
+    # Create a new folder name using the timestamp
+    folder_name = f"temp {element}"
 
+    # Specify the folder path
+    folder_path = os.path.join(PATH, folder_name)
+
+    # Create the new folder
+    os.makedirs(folder_path)
+
+    temp_file_path = os.path.join(folder_path, "temp_email.txt")
+    
+    
+    with open(temp_file_path, 'ab') as file:
+        client_socket.send(f'RETR {element}\r\n'.encode('utf-8'))
+        while True:
+            partial_response = client_socket.recv(1024)
+            if not partial_response:
+                break
+            file.write(partial_response)
+            if b'\r\n.\r\n' in partial_response:
+                break
+    
+    with open(temp_file_path, 'rb') as file:
+        response = file.read()
+        parse_mime_structure(response.decode('utf-8'), element)
+    
+    os.remove(temp_file_path)
+    os.rmdir(folder_path)
 def receive_email(username, password):
     pop3_server = '127.0.0.1'
     pop3_port = 2000
@@ -231,9 +259,7 @@ def receive_email(username, password):
         print (retr_list)
 
         for element in retr_list:
-            response = retr_email(client_socket, element)
-            parse_mime_structure(response.decode('utf-8'), element)
-
+            get_and_save_email(client_socket, element)
         quit_email(client_socket)
 
 # Receive email
