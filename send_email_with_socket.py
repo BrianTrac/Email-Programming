@@ -10,17 +10,51 @@ RETR_FILE = "D:\\Python\\Socket Programming\\Email\\retr_file.txt"
 CONTENT_EMAIL_FILE = "content_email.txt"
 PATH = "D:\\Python\\Socket Programming\\Email\\Inbox"
 
+def get_email_info(headers_dict):
+    email_info = EmailInfo()
+    try:
+        email_info.Date = headers_dict.get('Date', '') 
+    except:
+        email_info.Date = ""
+
+    try:
+        email_info.To = headers_dict.get('To', '') | ""
+    except:
+        email_info.To = ""
+
+    try:
+        email_info.Cc = headers_dict.get('Cc', '')
+    except:
+        email_info.Cc = ""
+
+    try:
+        email_info.Subject = headers_dict.get('Subject', '')
+    except:
+        email_info.Subject = ""
+
+    try:
+        email_info.From = headers_dict.get('From', '')
+    except:
+        email_info.From = ""
+
+    try:
+        email_info.Content_Transfer_Encoding = headers_dict.get('Content_Transfer_Encoding', '')
+    except:
+        email_info.Content_Transfer_Encoding = ""
+
+    return email_info
+
 def parse_mime_structure(message, element):
     # Split the message into headers and body
     headers, body = message.split('\r\n\r\n', 1)
 
     # Parse headers into a dictionary
     headers_dict  = dict((line.split(": ", 1)) for line in headers.split('\r\n') if ": " in line)
-
+    
     # Get the content type
     content_type = headers_dict.get('Content-Type', '')
 
-    # Create a new folder name using the timestamp
+    # Create a new folder name 
     folder_name = f"{element}"
 
     # Specify the folder path
@@ -28,6 +62,12 @@ def parse_mime_structure(message, element):
 
     # Create the new folder
     os.makedirs(folder_path)
+
+    # get email info
+    email_info = get_email_info(headers_dict)
+    json_filename = f'{element}.json'
+    json_file = os.path.join(folder_path, json_filename)
+    email_info.save_to_json(email_info, json_file)
 
     # Check if it's a multipart message
     if 'multipart/mixed'  in content_type:
@@ -38,7 +78,7 @@ def parse_mime_structure(message, element):
         for part in parts:
             # Process each part
             if part and part != '--\r\n':
-                process_mime_structure(folder_path ,part)
+                process_mime_structure(folder_path, part)
     elif 'text/plain' in content_type:
             filename = CONTENT_EMAIL_FILE
             file_path = os.path.join(folder_path, filename)
@@ -53,11 +93,11 @@ def process_mime_structure(folder_path, part):
 
     # Parse headers into dictionary
     part_headers_dict = dict(
-        (line.split(": ", 1) if ": " in line else line.split("*=UTF-8''", 1))
-        for line in part_headers.split('\r\n') if (": " in line or "*=UTF-8''" in line)
+        (line.split(": ", 1) if ": " in line else line.split("=", 1))
+        for line in part_headers.split('\r\n') if (": " in line or "filename" in line)
     )
 
-    print( part_headers_dict )
+    print(part_headers_dict )
 
     # Check if the part in an attachment
     if 'attachment' in part_headers_dict.get('Content-Disposition', ''):
@@ -71,12 +111,23 @@ def process_mime_structure(folder_path, part):
         filename = CONTENT_EMAIL_FILE
     
     if filename == "":
-        print(part_headers_dict.get(' filename', ''))
-        filename = part_headers_dict.get(' filename', '')
-        if (filename == ""):
-            filename = part_headers_dict .get(' filename*0', '')
-        filename = unquote(filename)
-    
+
+        if ' filename' in part_headers_dict:
+            filename = part_headers_dict.get(' filename', '').strip('"')
+        elif ' filename*' in part_headers_dict:
+            filename = part_headers_dict.get(' filename*', '').split("UTF-8''")[1]
+            filename = unquote(filename)
+        elif ' filename*0' in part_headers_dict:
+            filename = part_headers_dict.get(' filename*0', '').strip('"') + part_headers_dict.get(' filename*1', '').strip('"')
+        elif ' filename*0*' in part_headers_dict:
+            filename0 = part_headers_dict.get(' filename*0*', '').split("UTF-8''")[1]
+            filename0 = unquote(filename0).strip(';')
+            filename1 = part_headers_dict.get(' filename*1*', '')
+            filename1 = unquote(filename1).strip("' ")
+            filename = filename0 + filename1
+        else:
+            filename = "Error.txt"
+
     content = part_body
     print(filename, "!!!")
     # Save to file
@@ -127,7 +178,7 @@ def get_retr_list(index_list):
 def retr_email(client_socket, element):
     client_socket.send(f'RETR {element}\r\n'.encode('utf-8'))
     response = receive_response(client_socket)
-    print(response.decode('utf-8'))
+#   print(response.decode('utf-8'))
     return response
 
 def quit_email(client_socket):
