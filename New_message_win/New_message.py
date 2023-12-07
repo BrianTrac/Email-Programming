@@ -52,11 +52,11 @@ CTkButton(task_bar, text="Help", font=("Helvetica", 12, "bold"),
           fg_color="black", command=comming_soon).grid(row=0, column=7, pady=5, padx=0)
 
 
-send_img = Image.open("send_icon.png")
+send_img = Image.open("New_message_win\\send_icon.png")
 CTkButton(master=tool_bar, text="Send", font=("Helvetica", 12, "bold"),
           image=CTkImage(dark_image=send_img, light_image=send_img),
           command=comming_soon).grid(row=0, column=0, pady=5, padx=25)
-save_img = Image.open("save_icon.png")
+save_img = Image.open("New_message_win\\save_icon.png")
 CTkButton(master=tool_bar, text="Save", font=("Helvetica", 12, "bold"),
           image=CTkImage(dark_image=save_img, light_image=save_img),
           command=comming_soon).grid(row=0, column=1, pady=5, padx=25)
@@ -88,7 +88,7 @@ CTkTextbox(master=box_frame, scrollbar_button_color="#FFCC70", corner_radius=16,
            border_width=2, text_color="#FFCC70").place(relx=0.5, rely=0.5, anchor="center", relwidth=0.9, relheight=0.9)
 
 
-attachment_img = Image.open("attachment_icon.png")
+attachment_img = Image.open("New_message_win\\attachment_icon.png")
 btn = CTkButton(master=tool_bar, text="Attachment", corner_radius=32, fg_color="#4158D0", hover_color="#C850C0",
                 border_color="#FFCC70", border_width=2, image=CTkImage(dark_image=attachment_img, light_image=attachment_img),
                 command=comming_soon)
