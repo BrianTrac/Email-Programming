@@ -32,7 +32,6 @@ box_frame.grid(row=3, column=0, sticky="nsew")
 for i in range(5):
     app.grid_columnconfigure(i, weight=1 if i ==0 else 0)
 app.grid_rowconfigure(3, weight=1)
-app.grid_rowconfigure(4, weight=0)
 
 
 CTkButton(task_bar, text="File", font=("Helvetica", 12, "bold"),
