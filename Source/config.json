@@ -1,0 +1,10 @@
+{
+  "Username": "Anh Khoa",
+  "Usermail": "22120120@student.hcmus.edu.vn",
+  "PASS": "12345678",
+  "MailServer": "127.0.0.1",
+  "SMTP": "3000",
+  "POP3": "2001",
+  "Autoload": "10",
+  "MAX": "3"
+}

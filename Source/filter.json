@@ -1,0 +1,17 @@
+{
+  "Star": {
+    "From": ["a@gmail.com"],
+    "Subject": ["Thursday", "Windows"],
+    "Content": ["h"]
+  },
+  "Work": {
+    "From": [],
+    "Subject": ["Grade", "Exam"],
+    "Content": []
+  },
+  "Spam": {
+    "From": [],
+    "Subject": [],
+    "Content": ["Hello anh khoa", "message"]
+  }
+}
